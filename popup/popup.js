@@ -8,32 +8,35 @@ const saveButton = document.getElementById("save-button");
 const downloadButton = document.getElementById("download-button");
 const statusElement = document.getElementById("status");
 
-const progressSection = document.getElementById("download-progress");
-const taskTitle = document.getElementById("task-title");
-const progressStatus = document.getElementById("progress-status");
-const progressPercent = document.getElementById("progress-percent");
-const progressBar = document.getElementById("progress-bar");
-const progressSize = document.getElementById("progress-size");
-const progressSpeed = document.getElementById("progress-speed");
-const progressEta = document.getElementById("progress-eta");
+const tasksSection = document.getElementById("download-tasks");
+const tasksList = document.getElementById("tasks-list");
+const tasksCount = document.getElementById("tasks-count");
 
-const ACTIVE_STATUSES = ["downloading", "processing"];
+const STATUS_LABELS = {
+  downloading: "下載中",
+  processing: "處理中",
+  completed: "已完成",
+  error: "下載失敗",
+  skipped: "已跳過",
+  interrupted: "已中斷",
+  cancelled: "已取消",
+};
 
 // Bytes 轉換成 MB
 function formatMB(bytes) {
-  if (bytes == null) return "--";
+  if (!Number.isFinite(bytes)) return "--";
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 }
 
 // Bytes/s 轉換成 MB/s
 function formatSpeed(speed) {
-  if (speed == null) return "-- MB/s";
+  if (!Number.isFinite(speed)) return "-- MB/s";
   return `${(speed / (1024 * 1024)).toFixed(2)} MB/s`;
 }
 
 // 秒數格式化
 function formatETA(seconds) {
-  if (seconds == null) return "--";
+  if (!Number.isFinite(seconds)) return "--";
 
   const value = Math.max(0, Math.ceil(seconds));
   const minutes = Math.floor(value / 60);
@@ -41,6 +44,16 @@ function formatETA(seconds) {
 
   if (minutes === 0) return `${remainingSeconds} 秒`;
   return `${minutes} 分 ${remainingSeconds} 秒`;
+}
+
+// 安全建立 HTML 元素
+function createElement(tag, className = "", text = null) {
+  const element = document.createElement(tag);
+
+  if (className) element.className = className;
+  if (text !== null) element.textContent = text;
+
+  return element;
 }
 
 // 取得目前分頁資訊
@@ -82,90 +95,228 @@ saveButton.addEventListener("click", async () => {
   statusElement.textContent = "設定已儲存！";
 });
 
-// 更新下載進度介面
-function renderDownloadTask(task) {
-  if (!task) {
-    progressSection.hidden = true;
-    downloadButton.disabled = false;
+// 建立單一下載任務卡片
+function renderTask(task) {
+  const card = createElement("div", "download-task");
+
+  const header = createElement("div", "task-header");
+
+  const title = createElement(
+    "span",
+    "task-title",
+    task.title || "未知影片"
+  );
+
+  title.title = task.title || "未知影片";
+
+  const status = createElement(
+    "span",
+    `task-status ${task.status}`,
+    STATUS_LABELS[task.status] || "未知狀態"
+  );
+
+
+  header.append(title, status);
+
+  if (["downloading", "processing"].includes(task.status)) {
+    const cancelButton = createElement(
+      "button",
+      "task-cancel-button",
+      "取消"
+    );
+
+    cancelButton.type = "button";
+    cancelButton.title = "取消這部影片的下載";
+
+    cancelButton.addEventListener("click", async () => {
+      cancelButton.disabled = true;
+      cancelButton.textContent = "取消中...";
+
+      try {
+        const response = await chrome.runtime.sendMessage({
+          action: "cancelDownload",
+          taskId: task.id,
+        });
+
+        console.log("[Video Downloader] Cancel response:", response);
+
+        if (!response?.success) {
+          statusElement.textContent =
+            `取消失敗：${response?.error || "未知錯誤"}`;
+          cancelButton.disabled = false;
+          cancelButton.textContent = "取消";
+        }
+      } catch (error) {
+        statusElement.textContent = `取消失敗：${error.message}`;
+        cancelButton.disabled = false;
+        cancelButton.textContent = "取消";
+      }
+    });
+
+    header.appendChild(cancelButton);
+  }
+
+  card.appendChild(header);
+
+
+  const showProgress = [
+    "downloading",
+    "processing",
+    "completed",
+  ].includes(task.status);
+
+  if (showProgress) {
+    const progress = createElement("div", "task-progress");
+
+    const fill = createElement(
+      "div",
+      `task-progress-fill ${task.status}`
+    );
+
+    const percent = Number.isFinite(task.percent)
+      ? Math.min(100, Math.max(0, task.percent))
+      : 0;
+
+    fill.style.width = `${percent}%`;
+
+    progress.appendChild(fill);
+    card.appendChild(progress);
+
+    const details = createElement("div", "task-details");
+
+    const size = createElement(
+      "span",
+      "",
+      `${formatMB(task.downloadedBytes)} / ${formatMB(task.totalBytes)}`
+    );
+
+    const percentage = createElement(
+      "span",
+      "",
+      Number.isFinite(task.percent)
+        ? `${task.percent.toFixed(1)}%`
+        : "--%"
+    );
+
+    details.append(size, percentage);
+    card.appendChild(details);
+
+    if (task.status === "downloading") {
+      card.appendChild(
+        createElement(
+          "div",
+          "task-message",
+          `${formatSpeed(task.speed)} · 剩餘時間：${formatETA(task.eta)}`
+        )
+      );
+    }
+
+    if (task.status === "processing") {
+      card.appendChild(
+        createElement(
+          "div",
+          "task-message",
+          "正在合併或處理影片..."
+        )
+      );
+    }
+
+    if (task.status === "completed") {
+      card.appendChild(
+        createElement(
+          "div",
+          "task-message",
+          "影片已儲存完成"
+        )
+      );
+    }
+  }
+
+  if (task.status === "cancelled") {
+    card.appendChild(
+      createElement("div", "task-message", "使用者已取消下載")
+    );
+  }
+
+  if (task.status === "skipped") {
+    card.appendChild(
+      createElement(
+        "div",
+        "task-message",
+        task.error || "檔案已存在，已跳過下載"
+      )
+    );
+  }
+
+  if (["error", "interrupted"].includes(task.status)) {
+    card.appendChild(
+      createElement(
+        "div",
+        "task-message",
+        task.error || "下載中斷"
+      )
+    );
+  }
+
+  return card;
+}
+
+// 更新整份下載清單
+function renderTasks(tasks) {
+  tasksList.replaceChildren();
+
+  if (!Array.isArray(tasks) || tasks.length === 0) {
+    tasksSection.hidden = true;
+    tasksCount.textContent = "0 個任務";
     return;
   }
 
-  progressSection.hidden = false;
-  taskTitle.textContent = task.title || "未知影片";
+  tasksSection.hidden = false;
+  tasksCount.textContent = `${tasks.length} 個任務`;
 
-  const isActive = ACTIVE_STATUSES.includes(task.status);
-  downloadButton.disabled = isActive;
+  const sortedTasks = [...tasks].sort(
+    (a, b) => (b.createdAt || 0) - (a.createdAt || 0)
+  );
 
-  const statusLabels = {
-    downloading: "下載中...",
-    processing: "處理影片中...",
-    completed: "下載完成",
-    error: "下載失敗",
-  };
-
-  progressStatus.textContent =
-    statusLabels[task.status] || "準備中...";
-
-  const percent = task.percent;
-  progressPercent.textContent =
-    percent == null ? "--" : `${percent.toFixed(1)}%`;
-
-  progressBar.style.width =
-    percent == null
-      ? "0%"
-      : `${Math.min(100, Math.max(0, percent))}%`;
-
-  progressSize.textContent =
-    `${formatMB(task.downloadedBytes)} / ${formatMB(task.totalBytes)}`;
-
-  progressSpeed.textContent =
-    isActive ? formatSpeed(task.speed) : "-- MB/s";
-
-  progressEta.textContent =
-    task.status === "downloading"
-      ? `剩餘時間：${formatETA(task.eta)}`
-      : task.status === "processing"
-        ? "正在合併或處理影片..."
-        : task.status === "completed"
-          ? "影片已儲存完成"
-          : task.error || "下載失敗";
-
-  if (task.status === "error") {
-    statusElement.textContent = `下載失敗：${task.error || "未知錯誤"}`;
-  } else if (task.status === "completed") {
-    statusElement.textContent = "下載完成！";
-  } else if (isActive) {
-    statusElement.textContent = "";
+  for (const task of sortedTasks) {
+    tasksList.appendChild(renderTask(task));
   }
 }
 
-// 初始化時取得現有下載任務
-async function loadDownloadTask() {
-  const response = await chrome.runtime.sendMessage({
-    action: "getDownloadTask",
+// 讀取現有下載任務
+async function loadDownloadTasks() {
+  const tasks = await chrome.runtime.sendMessage({
+    action: "getDownloadTasks",
   });
 
-  renderDownloadTask(response);
+  renderTasks(tasks);
 }
 
 // 監聽背景任務狀態變更
 chrome.storage.onChanged.addListener((changes, areaName) => {
   if (areaName !== "local") return;
 
-  if (changes.downloadTask) {
-    renderDownloadTask(changes.downloadTask.newValue);
+  if (changes.downloadTasks) {
+    renderTasks(changes.downloadTasks.newValue || []);
   }
 });
 
-// 儲存下載任務
+// 建立新的下載任務
 downloadButton.addEventListener("click", async () => {
   const [tab] = await chrome.tabs.query({
     active: true,
     currentWindow: true,
   });
 
-  if (!tab?.url) {
-    statusElement.textContent = "找不到目前分頁網址";
+  if (!tab?.url || !/^https?:\/\//i.test(tab.url)) {
+    statusElement.textContent = "找不到有效的網頁網址";
+    return;
+  }
+
+  const downloadPath = pathInput.value.trim();
+
+  if (!downloadPath) {
+    statusElement.textContent = "請輸入下載位置";
     return;
   }
 
@@ -173,20 +324,15 @@ downloadButton.addEventListener("click", async () => {
   statusElement.textContent = "正在建立下載任務...";
 
   try {
-    const settings = await chrome.storage.local.get({
-      downloadPath: "F:\\download",
-    });
-
     const response = await chrome.runtime.sendMessage({
       action: "download",
       url: tab.url,
       title: tab.title || "未知影片",
-      downloadPath: settings.downloadPath,
+      downloadPath,
     });
 
     if (response?.success) {
       statusElement.textContent = "下載任務已建立";
-      await loadDownloadTask();
     } else {
       statusElement.textContent =
         `無法建立下載任務：${response?.error || "未知錯誤"}`;
@@ -194,11 +340,12 @@ downloadButton.addEventListener("click", async () => {
   } catch (error) {
     statusElement.textContent = `通訊失敗：${error.message}`;
   } finally {
-    await loadDownloadTask().catch(console.error);
+    downloadButton.disabled = false;
+    await loadDownloadTasks().catch(console.error);
   }
 });
 
 // 初始化
-loadCurrentTab();
-loadSettings();
-loadDownloadTask().catch(console.error);
+loadCurrentTab().catch(console.error);
+loadSettings().catch(console.error);
+loadDownloadTasks().catch(console.error);

@@ -73,6 +73,8 @@ def download_video(url, download_path, progress_callback=None):
             "no_warnings": True,
             "color": {"stderr": "no_color", "stdout": "no_color"},
             "progress_hooks": [report_progress],
+            "overwrites": False,
+            "continuedl": True,
         }
 
         # 避免 yt-dlp 的文字輸出干擾 Native Messaging
