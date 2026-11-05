@@ -1,33 +1,100 @@
 
 console.log("[Video Downloader] content.js loaded");
+
 const detectedVideos = new WeakSet();
+const videoButtons = new Map();
 
-function detectVideos() {
-  const videos = document.querySelectorAll("video");
+function updateButtonPosition(video, button) {
+  const rect = video.getBoundingClientRect();
 
-  videos.forEach((video) => {
-    // 避免同一個影片重複偵測
-    if (detectedVideos.has(video)) return;
+  const visible =
+    video.isConnected &&
+    rect.width >= 160 &&
+    rect.height >= 90 &&
+    rect.bottom > 0 &&
+    rect.right > 0 &&
+    rect.top < window.innerHeight &&
+    rect.left < window.innerWidth;
 
-    detectedVideos.add(video);
+  button.hidden = !visible;
+  if (!visible) return;
 
-    console.log("[Video Downloader] 偵測到影片", {
-      src: video.currentSrc || video.src || "尚無來源",
-      width: video.videoWidth,
-      height: video.videoHeight,
-    });
-  });
+  button.style.top = `${Math.max(8, rect.top + 12)}px`;
+  button.style.left = `${Math.min(
+    window.innerWidth - button.offsetWidth - 8,
+    rect.right - button.offsetWidth - 12
+  )}px`;
 }
 
-// 初次掃描
-detectVideos();
+function addDownloadButton(video) {
+  if (detectedVideos.has(video)) return;
+  detectedVideos.add(video);
 
-// 監聽動態新增的影片
+  console.log("[Video Downloader] 偵測到影片", video);
+
+  const button = document.createElement("button");
+  button.className = "video-downloader-button";
+  button.textContent = "⬇ 下載";
+  button.type = "button";
+  button.hidden = true;
+
+  button.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const title = document.title;
+    const src = video.currentSrc || video.src || "尚無來源";
+
+    alert(
+      `影片標題：${title}\n` +
+      `影片來源：${src}\n\n` +
+      "下一階段將加入下載設定視窗。"
+    );
+  });
+
+  document.documentElement.appendChild(button);
+  videoButtons.set(video, button);
+
+  updateButtonPosition(video, button);
+}
+
+function detectVideos() {
+  document.querySelectorAll("video").forEach(addDownloadButton);
+}
+
+function updateAllButtons() {
+  for (const [video, button] of videoButtons) {
+    if (!video.isConnected) {
+      button.remove();
+      videoButtons.delete(video);
+      continue;
+    }
+
+    updateButtonPosition(video, button);
+  }
+}
+
+let scanScheduled = false;
+
 const observer = new MutationObserver(() => {
-  detectVideos();
+  if (scanScheduled) return;
+
+  scanScheduled = true;
+
+  requestAnimationFrame(() => {
+    scanScheduled = false;
+    detectVideos();
+    updateAllButtons();
+  });
 });
 
 observer.observe(document.documentElement, {
   childList: true,
   subtree: true,
 });
+
+window.addEventListener("scroll", updateAllButtons, true);
+window.addEventListener("resize", updateAllButtons);
+
+detectVideos();
+updateAllButtons();

@@ -1,0 +1,22 @@
+
+.video-downloader-button {
+  position: fixed;
+  z-index: 2147483647;
+
+  padding: 8px 14px;
+  border: none;
+  border-radius: 6px;
+
+  background: #2563eb;
+  color: white;
+
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.video-downloader-button:hover {
+  background: #1d4ed8;
+}
