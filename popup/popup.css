@@ -73,3 +73,228 @@ button:disabled {
   color: #4ade80;
   font-size: 12px;
 }
+
+
+/* 下載進度 */
+
+#download-progress {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #3f3f46;
+}
+
+#download-progress[hidden] {
+  display: none;
+}
+
+#download-progress h3 {
+  margin: 0 0 12px;
+  font-size: 14px;
+}
+
+#task-title {
+  margin-bottom: 12px;
+}
+
+.progress-header,
+.progress-details {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.progress-header {
+  margin-bottom: 8px;
+}
+
+#progress-percent {
+  color: #60a5fa;
+  font-weight: 600;
+}
+
+.progress-track {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #3f3f46;
+}
+
+#progress-bar {
+  width: 0%;
+  height: 100%;
+  border-radius: inherit;
+  background: #2563eb;
+  transition: width 0.3s ease;
+}
+
+.progress-details {
+  margin-top: 8px;
+  color: #a1a1aa;
+}
+
+#progress-eta {
+  margin-top: 8px;
+  color: #a1a1aa;
+  font-size: 12px;
+}
+
+
+/* 多任務下載清單 */
+#download-tasks {
+  margin-top: 16px;
+}
+
+#download-tasks[hidden] {
+  display: none;
+}
+
+.tasks-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.tasks-header h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+#tasks-count {
+  font-size: 12px;
+  color: #a1a1aa;
+}
+
+#tasks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.download-task {
+  padding: 12px;
+  border: 1px solid #3f3f46;
+  border-radius: 8px;
+  background: #27272a;
+}
+
+.task-header,
+.task-details {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.task-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.task-status,
+.task-details,
+.task-message {
+  font-size: 11px;
+  color: #a1a1aa;
+}
+
+.task-status {
+  flex-shrink: 0;
+}
+
+.task-status.completed {
+  color: #4ade80;
+}
+
+.task-status.error {
+  color: #f87171;
+}
+
+.task-status.skipped {
+  color: #fbbf24;
+}
+
+.task-progress {
+  width: 100%;
+  height: 6px;
+  margin: 10px 0 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #3f3f46;
+}
+
+.task-progress-fill {
+  width: 0;
+  height: 100%;
+  background: #3b82f6;
+  transition: width 0.2s ease;
+}
+
+.task-progress-fill.completed {
+  background: #22c55e;
+}
+
+.task-message {
+  margin-top: 8px;
+  overflow-wrap: anywhere;
+}
+
+
+.task-cancel-button {
+  flex-shrink: 0;
+  padding: 3px 7px;
+  border: 1px solid #ef4444;
+  border-radius: 5px;
+  background: transparent;
+  color: #f87171;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.task-cancel-button:hover {
+  background: #7f1d1d;
+}
+
+.task-cancel-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.task-status.cancelled {
+  color: #a1a1aa;
+}
+
+.task-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.task-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-status {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.task-cancel-button {
+  flex-shrink: 0;
+  width: auto;
+  min-width: 42px;
+  padding: 4px 8px;
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.4;
+}
