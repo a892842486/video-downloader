@@ -17,12 +17,19 @@ def read_message():
     return json.loads(message.decode("utf-8"))
 
 
+
+# 保留原始 stdout，專門供 Native Messaging 使用
+NATIVE_STDOUT = sys.stdout.buffer
+
+
 def send_message(message):
     encoded = json.dumps(message).encode("utf-8")
 
-    sys.stdout.buffer.write(struct.pack("<I", len(encoded)))
-    sys.stdout.buffer.write(encoded)
-    sys.stdout.buffer.flush()
+    NATIVE_STDOUT.write(struct.pack("<I", len(encoded)))
+    NATIVE_STDOUT.write(encoded)
+    NATIVE_STDOUT.flush()
+
+
 
 
 
@@ -44,9 +51,16 @@ def main():
             }
 
         elif action == "download":
+            def on_progress(progress):
+                send_message({
+                    **progress,
+                    "requestId": request_id,
+                })
+
             response = download_video(
                 message.get("url"),
                 message.get("downloadPath"),
+                progress_callback=on_progress,
             )
 
         else:
@@ -55,7 +69,9 @@ def main():
                 "error": f"Unknown action: {action}",
             }
 
+        response["event"] = "completed" if response["success"] else "error"
         response["requestId"] = request_id
+
         send_message(response)
 
 

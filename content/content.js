@@ -38,19 +38,47 @@ function addDownloadButton(video) {
   button.type = "button";
   button.hidden = true;
 
-  button.addEventListener("click", (event) => {
+
+  button.addEventListener("click", async (event) => {
     event.preventDefault();
     event.stopPropagation();
 
-    const title = document.title;
-    const src = video.currentSrc || video.src || "尚無來源";
+    if (button.disabled) return;
 
-    alert(
-      `影片標題：${title}\n` +
-      `影片來源：${src}\n\n` +
-      "下一階段將加入下載設定視窗。"
-    );
+    button.disabled = true;
+    button.textContent = "下載中...";
+
+    try {
+      // 讀取 Popup 儲存的下載路徑
+      const settings = await chrome.storage.local.get({
+        downloadPath: "F:\\download",
+      });
+
+      // 呼叫 background.js，使用共用下載流程
+      const response = await chrome.runtime.sendMessage({
+        action: "download",
+        url: window.location.href,
+        title: document.title,
+        downloadPath: settings.downloadPath,
+      });
+
+      if (response?.success) {
+        button.textContent = "✓ 已加入下載";
+      } else {
+        console.error("[Video Downloader]", response?.error);
+        button.textContent = "✕ 下載失敗";
+      }
+    } catch (error) {
+      console.error("[Video Downloader]", error);
+      button.textContent = "✕ 下載失敗";
+    } finally {
+      setTimeout(() => {
+        button.disabled = false;
+        button.textContent = "⬇ 下載";
+      }, 3000);
+    }
   });
+
 
   document.documentElement.appendChild(button);
   videoButtons.set(video, button);

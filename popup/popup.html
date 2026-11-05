@@ -26,11 +26,35 @@
 
     <button id="save-button">儲存設定</button>
 
+
     <button id="download-button" disabled>
       ⬇ Download
     </button>
 
+    <section id="download-progress" hidden>
+      <h3>下載進度</h3>
+
+      <div id="task-title" class="info"></div>
+
+      <div class="progress-header">
+        <span id="progress-status">準備中...</span>
+        <span id="progress-percent">--</span>
+      </div>
+
+      <div class="progress-track">
+        <div id="progress-bar"></div>
+      </div>
+
+      <div class="progress-details">
+        <span id="progress-size">0.00 MB / --</span>
+        <span id="progress-speed">-- MB/s</span>
+      </div>
+
+      <div id="progress-eta">剩餘時間：--</div>
+    </section>
+
     <p id="status"></p>
+
   </main>
 
   <script src="./popup.js"></script>
