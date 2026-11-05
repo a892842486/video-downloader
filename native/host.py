@@ -26,6 +26,7 @@ def send_message(message):
 
 
 
+
 def main():
     while True:
         message = read_message()
@@ -34,12 +35,12 @@ def main():
             break
 
         action = message.get("action")
+        request_id = message.get("requestId")
 
         if action == "ping":
             response = {
                 "success": True,
                 "message": "Python Native Host connected!",
-                "received": message,
             }
 
         elif action == "download":
@@ -54,8 +55,8 @@ def main():
                 "error": f"Unknown action: {action}",
             }
 
+        response["requestId"] = request_id
         send_message(response)
-
 
 
 if __name__ == "__main__":

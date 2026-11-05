@@ -48,3 +48,46 @@ saveButton.addEventListener("click", async () => {
 // 初始化
 loadCurrentTab();
 loadSettings();
+
+
+const downloadButton = document.getElementById("download-button");
+
+downloadButton.disabled = false;
+
+downloadButton.addEventListener("click", async () => {
+  const [tab] = await chrome.tabs.query({
+    active: true,
+    currentWindow: true,
+  });
+
+  if (!tab?.url) {
+    statusElement.textContent = "找不到目前分頁網址";
+    return;
+  }
+
+  downloadButton.disabled = true;
+  statusElement.textContent = "下載中...";
+
+  try {
+    const settings = await chrome.storage.local.get({
+      downloadPath: "F:\\download",
+    });
+
+    const response = await chrome.runtime.sendMessage({
+      action: "download",
+      url: tab.url,
+      downloadPath: settings.downloadPath,
+    });
+
+    if (response?.success) {
+      statusElement.textContent = `下載完成：${response.title}`;
+    } else {
+      statusElement.textContent =
+        `下載失敗：${response?.error || "未知錯誤"}`;
+    }
+  } catch (error) {
+    statusElement.textContent = `通訊失敗：${error.message}`;
+  } finally {
+    downloadButton.disabled = false;
+  }
+});

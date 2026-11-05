@@ -1,4 +1,7 @@
 
+import contextlib
+import sys
+
 from pathlib import Path
 
 import yt_dlp
@@ -31,8 +34,9 @@ def download_video(url, download_path):
             "no_warnings": True,
         }
 
-        with yt_dlp.YoutubeDL(options) as ydl:
-            info = ydl.extract_info(url, download=True)
+        with contextlib.redirect_stdout(sys.stderr):
+            with yt_dlp.YoutubeDL(options) as ydl:
+                info = ydl.extract_info(url, download=True)
 
         return {
             "success": True,
