@@ -3,11 +3,36 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Video Downloader</title>
+  <link rel="stylesheet" href="./popup.css">
 </head>
 <body>
-  <h2>Video Downloader</h2>
-  <p>擴充功能已成功載入！</p>
-  <p>下一步：偵測網頁影片。</p>
+  <main>
+    <h2>Video Downloader</h2>
+
+    <label>影片標題</label>
+    <div id="video-title" class="info">讀取中...</div>
+
+    <label>目前網址</label>
+    <div id="video-url" class="info">讀取中...</div>
+
+    <label for="download-path">下載位置</label>
+    <input
+      type="text"
+      id="download-path"
+      placeholder="例如 F:\download"
+    >
+
+    <button id="save-button">儲存設定</button>
+
+    <button id="download-button" disabled>
+      ⬇ Download
+    </button>
+
+    <p id="status"></p>
+  </main>
+
+  <script src="./popup.js"></script>
 </body>
 </html>
