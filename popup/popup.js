@@ -1,11 +1,7 @@
 
 console.log("[Video Downloader] popup.js loaded");
 
-const titleElement = document.getElementById("video-title");
-const urlElement = document.getElementById("video-url");
 const pathInput = document.getElementById("download-path");
-const saveButton = document.getElementById("save-button");
-const downloadButton = document.getElementById("download-button");
 const statusElement = document.getElementById("status");
 
 const tasksSection = document.getElementById("download-tasks");
@@ -56,23 +52,6 @@ function createElement(tag, className = "", text = null) {
   return element;
 }
 
-// 取得目前分頁資訊
-async function loadCurrentTab() {
-  const [tab] = await chrome.tabs.query({
-    active: true,
-    currentWindow: true,
-  });
-
-  if (!tab) {
-    titleElement.textContent = "找不到目前分頁";
-    urlElement.textContent = "-";
-    return;
-  }
-
-  titleElement.textContent = tab.title || "未知標題";
-  urlElement.textContent = tab.url || "未知網址";
-}
-
 // 讀取已儲存設定
 async function loadSettings() {
   const settings = await chrome.storage.local.get({
@@ -82,8 +61,8 @@ async function loadSettings() {
   pathInput.value = settings.downloadPath;
 }
 
-// 儲存設定
-saveButton.addEventListener("click", async () => {
+// 下載位置修改完成後自動儲存
+pathInput.addEventListener("change", async () => {
   const downloadPath = pathInput.value.trim();
 
   if (!downloadPath) {
@@ -91,8 +70,12 @@ saveButton.addEventListener("click", async () => {
     return;
   }
 
-  await chrome.storage.local.set({ downloadPath });
-  statusElement.textContent = "設定已儲存！";
+  try {
+    await chrome.storage.local.set({ downloadPath });
+    statusElement.textContent = "下載位置已儲存";
+  } catch (error) {
+    statusElement.textContent = `儲存失敗：${error.message}`;
+  }
 });
 
 // 建立單一下載任務卡片
@@ -158,6 +141,15 @@ function renderTask(task) {
 
   card.appendChild(header);
 
+  if (task.folderCreated) {
+    card.appendChild(
+      createElement(
+        "div",
+        "task-message",
+        `📁 已建立新資料夾：${task.folderCreated}`
+      )
+    );
+  }
 
   const showProgress = [
     "downloading",
@@ -301,51 +293,6 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
   }
 });
 
-// 建立新的下載任務
-downloadButton.addEventListener("click", async () => {
-  const [tab] = await chrome.tabs.query({
-    active: true,
-    currentWindow: true,
-  });
-
-  if (!tab?.url || !/^https?:\/\//i.test(tab.url)) {
-    statusElement.textContent = "找不到有效的網頁網址";
-    return;
-  }
-
-  const downloadPath = pathInput.value.trim();
-
-  if (!downloadPath) {
-    statusElement.textContent = "請輸入下載位置";
-    return;
-  }
-
-  downloadButton.disabled = true;
-  statusElement.textContent = "正在建立下載任務...";
-
-  try {
-    const response = await chrome.runtime.sendMessage({
-      action: "download",
-      url: tab.url,
-      title: tab.title || "未知影片",
-      downloadPath,
-    });
-
-    if (response?.success) {
-      statusElement.textContent = "下載任務已建立";
-    } else {
-      statusElement.textContent =
-        `無法建立下載任務：${response?.error || "未知錯誤"}`;
-    }
-  } catch (error) {
-    statusElement.textContent = `通訊失敗：${error.message}`;
-  } finally {
-    downloadButton.disabled = false;
-    await loadDownloadTasks().catch(console.error);
-  }
-});
-
 // 初始化
-loadCurrentTab().catch(console.error);
 loadSettings().catch(console.error);
 loadDownloadTasks().catch(console.error);

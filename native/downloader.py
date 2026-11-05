@@ -62,7 +62,15 @@ def download_video(url, download_path, progress_callback=None):
 
     try:
         output_dir = Path(download_path).expanduser()
+        folder_created = not output_dir.is_dir()
+
         output_dir.mkdir(parents=True, exist_ok=True)
+
+        if folder_created and progress_callback:
+            progress_callback({
+                "event": "folder_created",
+                "path": str(output_dir),
+            })
 
         options = {
             "paths": {"home": str(output_dir)},

@@ -11,26 +11,12 @@
   <main>
     <h2>Video Downloader</h2>
 
-    <label>影片標題</label>
-    <div id="video-title" class="info">讀取中...</div>
-
-    <label>目前網址</label>
-    <div id="video-url" class="info">讀取中...</div>
-
-    <label for="download-path">下載位置</label>
+    <label for="download-path">下載位置（自動儲存）</label>
     <input
       type="text"
       id="download-path"
       placeholder="例如 F:\download"
     >
-
-    <button id="save-button">儲存設定</button>
-
-
-    <button id="download-button" disabled>
-      ⬇ Download
-    </button>
-
 
     <section id="download-tasks" hidden>
       <div class="tasks-header">
@@ -41,10 +27,9 @@
       <div id="tasks-list"></div>
     </section>
 
-
     <p id="status"></p>
-
   </main>
+
 
   <script src="./popup.js"></script>
 </body>

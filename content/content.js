@@ -55,6 +55,14 @@ function addDownloadButton(video) {
       });
 
       // 呼叫 background.js，使用共用下載流程
+      const videoSource = video.currentSrc || video.src || null;
+
+      console.log("[Video Downloader] Selected video:", {
+        pageUrl: window.location.href,
+        videoSource,
+        title: document.title,
+      });
+
       const response = await chrome.runtime.sendMessage({
         action: "download",
         url: window.location.href,

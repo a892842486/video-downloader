@@ -82,6 +82,14 @@ function connectDownload(task) {
     if (!current) return;
     if (response.requestId !== task.id) return;
 
+    if (response.event === "folder_created") {
+      updateTask(task.id, {
+        folderCreated: response.path,
+      });
+
+      return;
+    }
+
     if (response.event === "progress") {
       updateTask(task.id, {
         status: response.status === "finished"
