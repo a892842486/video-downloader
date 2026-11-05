@@ -1,4 +1,5 @@
 
+from downloader import download_video
 import json
 import struct
 import sys
@@ -24,6 +25,7 @@ def send_message(message):
     sys.stdout.buffer.flush()
 
 
+
 def main():
     while True:
         message = read_message()
@@ -31,11 +33,29 @@ def main():
         if message is None:
             break
 
-        send_message({
-            "success": True,
-            "message": "Python Native Host connected!",
-            "received": message,
-        })
+        action = message.get("action")
+
+        if action == "ping":
+            response = {
+                "success": True,
+                "message": "Python Native Host connected!",
+                "received": message,
+            }
+
+        elif action == "download":
+            response = download_video(
+                message.get("url"),
+                message.get("downloadPath"),
+            )
+
+        else:
+            response = {
+                "success": False,
+                "error": f"Unknown action: {action}",
+            }
+
+        send_message(response)
+
 
 
 if __name__ == "__main__":
