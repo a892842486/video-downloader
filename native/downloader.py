@@ -1,4 +1,5 @@
 
+import os
 import contextlib
 import sys
 import time
@@ -80,7 +81,37 @@ def download_video(url, download_path, progress_callback=None):
         # 避免 yt-dlp 的文字輸出干擾 Native Messaging
         with contextlib.redirect_stdout(sys.stderr):
             with yt_dlp.YoutubeDL(options) as ydl:
+                # 先取得影片資訊，不開始下載
+                info = ydl.extract_info(url, download=False)
+
+                if not info:
+                    return {
+                        "success": False,
+                        "error": "無法取得影片資訊",
+                    }
+
+                # 根據 yt-dlp 選擇的格式推算輸出檔名
+                filename = ydl.prepare_filename(info)
+
+                # 使用 FFmpeg 合併時，最終檔案通常為 MP4
+                final_path = Path(filename)
+
+                if info.get("requested_formats"):
+                    final_path = final_path.with_suffix(".mp4")
+
+                # 已有完成檔案就直接跳過
+                if final_path.is_file():
+                    return {
+                        "success": True,
+                        "skipped": True,
+                        "title": info.get("title", "Unknown"),
+                        "filename": final_path.name,
+                        "downloadPath": str(output_dir),
+                    }
+
+                # 尚未下載，正常執行
                 info = ydl.extract_info(url, download=True)
+
 
         return {
             "success": True,

@@ -97,6 +97,21 @@ function connectDownload(task) {
       return;
     }
 
+
+    if (response.event === "skipped") {
+      updateTask(task.id, {
+        status: "skipped",
+        title: response.title || current.title,
+        error: `檔案已存在：${response.filename || "未知檔案"}`,
+        speed: null,
+        eta: null,
+      });
+
+      port.disconnect();
+      return;
+    }
+
+
     if (response.event === "completed") {
       updateTask(task.id, {
         status: "completed",
@@ -189,28 +204,6 @@ async function cancelDownload(taskId) {
   await saveTasks();
 
   return { success: true };
-}
-
-async function saveCancelledTask(taskId) {
-  const task = tasks.get(taskId);
-
-  tasks.set(taskId, {
-    ...task,
-    status: "cancelled",
-    speed: null,
-    eta: null,
-    error: null,
-  });
-
-  await saveTasks();
-}
-
-// 新增下載任務（原本的程式碼，繼續保留）
-async function startDownload(message) {
-  await initializeTasks();
-
-  // 你已經加入的防重複檢查
-  // 後面原本的下載邏輯繼續保留
 }
 
 // 新增下載任務

@@ -69,7 +69,12 @@ def main():
                 "error": f"Unknown action: {action}",
             }
 
-        response["event"] = "completed" if response["success"] else "error"
+        if response.get("skipped"):
+            response["event"] = "skipped"
+        elif response["success"]:
+            response["event"] = "completed"
+        else:
+            response["event"] = "error"
         response["requestId"] = request_id
 
         send_message(response)
