@@ -11,7 +11,8 @@
   "permissions": [
     "activeTab",
     "storage",
-    "tabs"
+    "tabs",
+    "nativeMessaging"
   ],
   "content_scripts": [
     {
@@ -19,5 +20,8 @@
       "js": ["content/content.js"],
       "css": ["content/content.css"]
     }
-  ]
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
 }
