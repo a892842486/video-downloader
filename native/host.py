@@ -63,6 +63,7 @@ def main():
                 progress_callback=on_progress,
                 referer=message.get("referer"),
                 title=message.get("title"),
+                fallback_url=message.get("fallbackUrl"),
             )
 
         else:
