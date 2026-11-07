@@ -214,6 +214,7 @@ function connectDownload(task) {
     action: "download",
     requestId: task.id,
     url: task.url,
+    fallbackUrl: task.fallbackUrl,
     referer: task.referer,
     title: task.title,
     downloadPath: task.downloadPath,
@@ -284,7 +285,8 @@ async function startDownload(message, sender) {
     }
   });
 
-  const normalizedUrl = hlsUrl || message.url?.trim();
+  const normalizedUrl = message.url?.trim();
+  const fallbackUrl = hlsUrl || null;
 
   const duplicateTask = Array.from(tasks.values()).find(
     (task) =>
@@ -311,6 +313,7 @@ async function startDownload(message, sender) {
     id: crypto.randomUUID(),
     title: message.title || "未知影片",
     url: normalizedUrl,
+    fallbackUrl,
     referer: message.referer || null,
     downloadPath: message.downloadPath,
     status: "downloading",

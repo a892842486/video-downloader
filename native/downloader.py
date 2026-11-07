@@ -9,7 +9,14 @@ from pathlib import Path
 import yt_dlp
 from yt_dlp.networking.impersonate import ImpersonateTarget
 
-def download_video(url, download_path, progress_callback=None, referer=None, title=None):
+def download_video(
+    url,
+    download_path,
+    progress_callback=None,
+    referer=None,
+    title=None,
+    fallback_url=None,
+):
     if not isinstance(url, str) or not url.startswith(("https://", "http://")):
         return {"success": False, "error": "Invalid video URL"}
 
