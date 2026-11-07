@@ -61,6 +61,8 @@ def main():
                 message.get("url"),
                 message.get("downloadPath"),
                 progress_callback=on_progress,
+                referer=message.get("referer"),
+                title=message.get("title"),
             )
 
         else:

@@ -1,14 +1,15 @@
 
-import os
 import contextlib
+import os
 import sys
 import time
+import traceback
 from pathlib import Path
 
 import yt_dlp
+from yt_dlp.networking.impersonate import ImpersonateTarget
 
-
-def download_video(url, download_path, progress_callback=None):
+def download_video(url, download_path, progress_callback=None, referer=None, title=None):
     if not isinstance(url, str) or not url.startswith(("https://", "http://")):
         return {"success": False, "error": "Invalid video URL"}
 
@@ -75,6 +76,7 @@ def download_video(url, download_path, progress_callback=None):
         options = {
             "paths": {"home": str(output_dir)},
             "outtmpl": "%(title)s [%(resolution)s].%(ext)s",
+            "impersonate": ImpersonateTarget.from_str("chrome"),
             "format": "bv*+ba/b",
             "merge_output_format": "mp4",
             "noplaylist": True,
@@ -85,6 +87,12 @@ def download_video(url, download_path, progress_callback=None):
             "overwrites": False,
             "continuedl": True,
         }
+
+        # 自動帶入來源網頁 Referer
+        if isinstance(referer, str) and referer.startswith(("https://", "http://")):
+            options["http_headers"] = {
+                "Referer": referer,
+            }
 
         # 避免 yt-dlp 的文字輸出干擾 Native Messaging
         with contextlib.redirect_stdout(sys.stderr):
@@ -98,10 +106,30 @@ def download_video(url, download_path, progress_callback=None):
                         "error": "無法取得影片資訊",
                     }
 
-                # 根據 yt-dlp 選擇的格式推算輸出檔名
-                filename = ydl.prepare_filename(info)
+                # yt-dlp 標題無效時，才使用網頁標題備援
+                video_title = info.get("title", "")
 
-                # 使用 FFmpeg 合併時，最終檔案通常為 MP4
+                if (
+                    isinstance(title, str)
+                    and title.strip()
+                    and (
+                        not isinstance(video_title, str)
+                        or not video_title.strip()
+                        or video_title.lower() in ("video", "playlist", "index", "master")
+                    )
+                ):
+                    clean_title = title.strip()
+
+                    # 移除網頁標題最後一段常見的網站後綴
+                    for separator in [" | ", " - ", " — "]:
+                        if separator in clean_title:
+                            clean_title = clean_title.rsplit(separator, 1)[0].strip()
+                            break
+
+                    info["title"] = clean_title
+
+                # 根據影片資訊推算輸出檔名
+                filename = ydl.prepare_filename(info)
                 final_path = Path(filename)
 
                 if info.get("requested_formats"):
@@ -117,8 +145,8 @@ def download_video(url, download_path, progress_callback=None):
                         "downloadPath": str(output_dir),
                     }
 
-                # 尚未下載，正常執行
-                info = ydl.extract_info(url, download=True)
+                # 使用已修改標題的影片資訊下載，避免重新解析
+                info = ydl.process_ie_result(info, download=True)
 
 
         return {
@@ -127,5 +155,8 @@ def download_video(url, download_path, progress_callback=None):
             "downloadPath": str(output_dir),
         }
 
-    except Exception as error:
-        return {"success": False, "error": str(error)}
+    except Exception:
+        return {
+            "success": False,
+            "error": traceback.format_exc(),
+        }

@@ -12,7 +12,13 @@
     "activeTab",
     "storage",
     "tabs",
-    "nativeMessaging"
+    "nativeMessaging",
+    "webRequest",
+    "webNavigation"
+  ],
+  "host_permissions": [
+    "http://*/*",
+    "https://*/*"
   ],
   "content_scripts": [
     {

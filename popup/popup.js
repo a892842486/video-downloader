@@ -4,6 +4,10 @@ console.log("[Video Downloader] popup.js loaded");
 const pathInput = document.getElementById("download-path");
 const statusElement = document.getElementById("status");
 
+const downloadButtonsToggle = document.getElementById(
+  "download-buttons-toggle"
+);
+
 const tasksSection = document.getElementById("download-tasks");
 const tasksList = document.getElementById("tasks-list");
 const tasksCount = document.getElementById("tasks-count");
@@ -56,10 +60,26 @@ function createElement(tag, className = "", text = null) {
 async function loadSettings() {
   const settings = await chrome.storage.local.get({
     downloadPath: "F:\\download",
+    downloadButtonsEnabled: false,
   });
 
   pathInput.value = settings.downloadPath;
+  downloadButtonsToggle.checked = settings.downloadButtonsEnabled;
 }
+
+// 下載按鈕顯示開關
+downloadButtonsToggle.addEventListener("change", async () => {
+  const enabled = downloadButtonsToggle.checked;
+
+  try {
+    await chrome.storage.local.set({
+      downloadButtonsEnabled: enabled,
+    });
+  } catch (error) {
+    downloadButtonsToggle.checked = !enabled;
+    statusElement.textContent = `設定儲存失敗：${error.message}`;
+  }
+});
 
 // 下載位置修改完成後自動儲存
 pathInput.addEventListener("change", async () => {

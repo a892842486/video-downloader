@@ -4,10 +4,32 @@ console.log("[Video Downloader] content.js loaded");
 const detectedVideos = new WeakSet();
 const videoButtons = new Map();
 
+let downloadButtonsEnabled = false;
+
+// 讀取下載按鈕顯示設定
+async function loadButtonSettings() {
+  const settings = await chrome.storage.local.get({
+    downloadButtonsEnabled: false,
+  });
+
+  downloadButtonsEnabled = settings.downloadButtonsEnabled;
+  updateAllButtons();
+}
+
+// 監聽 Popup 開關變更
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName !== "local") return;
+  if (!changes.downloadButtonsEnabled) return;
+
+  downloadButtonsEnabled = changes.downloadButtonsEnabled.newValue === true;
+  updateAllButtons();
+});
+
 function updateButtonPosition(video, button) {
   const rect = video.getBoundingClientRect();
 
   const visible =
+    downloadButtonsEnabled &&
     video.isConnected &&
     rect.width >= 160 &&
     rect.height >= 90 &&
@@ -66,6 +88,7 @@ function addDownloadButton(video) {
       const response = await chrome.runtime.sendMessage({
         action: "download",
         url: window.location.href,
+        referer: window.location.href,
         title: document.title,
         downloadPath: settings.downloadPath,
       });
@@ -134,3 +157,4 @@ window.addEventListener("resize", updateAllButtons);
 
 detectVideos();
 updateAllButtons();
+loadButtonSettings().catch(console.error);
