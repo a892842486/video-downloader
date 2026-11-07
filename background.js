@@ -7,6 +7,51 @@ const STORAGE_KEY = "downloadTasks";
 const tasks = new Map();
 const ports = new Map();
 
+// 記錄每個分頁偵測到的 HLS 來源
+const hlsSources = new Map();
+
+chrome.webRequest.onBeforeRequest.addListener(
+  (details) => {
+    if (details.tabId < 0) return;
+
+    let url;
+
+    try {
+      url = new URL(details.url);
+    } catch {
+      return;
+    }
+
+    if (!/\.m3u8$/i.test(url.pathname)) return;
+
+    if (!hlsSources.has(details.tabId)) {
+      hlsSources.set(details.tabId, new Set());
+    }
+
+    hlsSources.get(details.tabId).add(details.url);
+
+    console.log("[Video Downloader] HLS detected:", {
+      tabId: details.tabId,
+      url: details.url,
+    });
+  },
+  {
+    urls: ["http://*/*", "https://*/*"],
+  }
+);
+
+// 一般網頁導航時，清除舊的 HLS 來源
+chrome.webNavigation.onCommitted.addListener((details) => {
+  if (details.frameId !== 0) return;
+
+  hlsSources.delete(details.tabId);
+});
+
+// 分頁關閉時，清除 HLS 來源
+chrome.tabs.onRemoved.addListener((tabId) => {
+  hlsSources.delete(tabId);
+});
+
 const ACTIVE_STATUSES = ["downloading", "processing"];
 
 let saveQueue = Promise.resolve();
@@ -77,6 +122,7 @@ function connectDownload(task) {
   ports.set(task.id, port);
 
   port.onMessage.addListener((response) => {
+
     const current = tasks.get(task.id);
 
     if (!current) return;
@@ -168,6 +214,8 @@ function connectDownload(task) {
     action: "download",
     requestId: task.id,
     url: task.url,
+    referer: task.referer,
+    title: task.title,
     downloadPath: task.downloadPath,
   });
 }
@@ -215,10 +263,28 @@ async function cancelDownload(taskId) {
 }
 
 // 新增下載任務
-async function startDownload(message) {
+async function startDownload(message, sender) {
   await initializeTasks();
 
-  const normalizedUrl = message.url?.trim();
+  const tabId = sender.tab?.id;
+  const sources = tabId != null
+    ? [...(hlsSources.get(tabId) || [])]
+    : [];
+
+  // 優先使用主播放清單，讓 yt-dlp 自行選擇畫質
+  const masterPlaylist = sources.find((url) =>
+    /\/playlist\.m3u8(?:\?|$)/i.test(url)
+  );
+
+  const hlsUrl = masterPlaylist || sources.find((url) => {
+    try {
+      return new URL(url).pathname.toLowerCase().endsWith(".m3u8");
+    } catch {
+      return false;
+    }
+  });
+
+  const normalizedUrl = hlsUrl || message.url?.trim();
 
   const duplicateTask = Array.from(tasks.values()).find(
     (task) =>
@@ -234,7 +300,7 @@ async function startDownload(message) {
   }
 
 
-  if (!message.url?.startsWith("http")) {
+  if (!normalizedUrl?.startsWith("http")) {
     return {
       success: false,
       error: "無效的影片網址",
@@ -244,7 +310,8 @@ async function startDownload(message) {
   const task = {
     id: crypto.randomUUID(),
     title: message.title || "未知影片",
-    url: message.url,
+    url: normalizedUrl,
+    referer: message.referer || null,
     downloadPath: message.downloadPath,
     status: "downloading",
     downloadedBytes: 0,
@@ -282,7 +349,7 @@ async function startDownload(message) {
 // Chrome 訊息入口
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "download") {
-    startDownload(message)
+    startDownload(message, sender)
       .then(sendResponse)
       .catch((error) => {
         sendResponse({

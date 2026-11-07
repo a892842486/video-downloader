@@ -66,6 +66,7 @@ function addDownloadButton(video) {
       const response = await chrome.runtime.sendMessage({
         action: "download",
         url: window.location.href,
+        referer: window.location.href,
         title: document.title,
         downloadPath: settings.downloadPath,
       });
