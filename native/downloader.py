@@ -104,14 +104,30 @@ def download_video(
         # 避免 yt-dlp 的文字輸出干擾 Native Messaging
         with contextlib.redirect_stdout(sys.stderr):
             with yt_dlp.YoutubeDL(options) as ydl:
-                # 先取得影片資訊，不開始下載
-                info = ydl.extract_info(url, download=False)
+                # 優先解析原始網頁網址，失敗時嘗試 HLS 備援
+                try:
+                    info = ydl.extract_info(url, download=False)
 
-                if not info:
-                    return {
-                        "success": False,
-                        "error": "無法取得影片資訊",
-                    }
+                    if not info:
+                        raise ValueError("無法取得影片資訊")
+
+                except yt_dlp.utils.DownloadError:
+                    if (
+                        not isinstance(fallback_url, str)
+                        or not fallback_url.startswith(("https://", "http://"))
+                        or fallback_url == url
+                    ):
+                        raise
+
+                    print(
+                        "[Video Downloader] 原始網址解析失敗，嘗試 HLS 備援",
+                        file=sys.stderr,
+                    )
+
+                    info = ydl.extract_info(fallback_url, download=False)
+
+                    if not info:
+                        raise ValueError("HLS 備援無法取得影片資訊")
 
                 # yt-dlp 標題無效時，才使用網頁標題備援
                 video_title = info.get("title", "")
