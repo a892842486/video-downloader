@@ -1,0 +1,10 @@
+
+{
+  "name": "com.video_downloader.host",
+  "description": "Video Downloader Native Messaging Host",
+  "path": "C:\\path\\to\\video_downloader\\native\\host.bat",
+  "type": "stdio",
+  "allowed_origins": [
+    "chrome-extension://YOUR_EXTENSION_ID/"
+  ]
+}
