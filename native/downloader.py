@@ -4,6 +4,7 @@ import sys
 import time
 import traceback
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import yt_dlp
 
@@ -113,14 +114,15 @@ def download_video(
         ydl_title_hook = yt_dlp.postprocessor.common.PostProcessor()
         ydl_title_hook.run = fix_video_title
 
-        # SpankBang 使用網站首頁作為 Referer
+        # 使用來源網站的根網址作為 Referer
         if isinstance(referer, str) and referer.startswith(("https://", "http://")):
-            if referer.startswith(("https://spankbang.com/", "http://spankbang.com/")):
-                referer = "https://spankbang.com"
+            parsed = urlsplit(referer)
+            origin = f"{parsed.scheme}://{parsed.netloc}"
 
             options["http_headers"] = {
-                "Referer": referer,
+                "Referer": origin,
             }
+
         # 避免 yt-dlp 的文字輸出干擾 Native Messaging
         with contextlib.redirect_stdout(sys.stderr):
             with yt_dlp.YoutubeDL(options) as ydl:
