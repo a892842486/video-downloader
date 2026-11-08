@@ -118,7 +118,6 @@ function renderTask(task) {
     STATUS_LABELS[task.status] || "未知狀態"
   );
 
-
   header.append(title, status);
 
   if (["downloading", "processing"].includes(task.status)) {
