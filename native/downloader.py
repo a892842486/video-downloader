@@ -6,7 +6,6 @@ import traceback
 from pathlib import Path
 
 import yt_dlp
-from yt_dlp.networking.impersonate import ImpersonateTarget
 
 
 def download_video(
@@ -22,6 +21,25 @@ def download_video(
 
     if not isinstance(download_path, str) or not download_path.strip():
         return {"success": False, "error": "Invalid download path"}
+
+    def fix_video_title(info):
+        video_title = info.get("title", "")
+        video_id = info.get("id", "")
+
+        invalid_titles = ("video", "playlist", "index", "master")
+
+        if (
+            isinstance(title, str)
+            and title.strip()
+            and (
+                not video_title
+                or video_title == video_id
+                or video_title.lower() in invalid_titles
+            )
+        ):
+            info["title"] = title.strip()
+
+        return [], info
 
     last_report = 0.0
 
@@ -81,7 +99,6 @@ def download_video(
         options = {
             "paths": {"home": str(output_dir)},
             "outtmpl": "%(title)s [%(resolution)s].%(ext)s",
-            "impersonate": ImpersonateTarget.from_str("chrome"),
             "format": "bv*+ba/b",
             "merge_output_format": "mp4",
             "noplaylist": True,
@@ -93,18 +110,24 @@ def download_video(
             "continuedl": True,
         }
 
-        # 自動帶入來源網頁 Referer
+        ydl_title_hook = yt_dlp.postprocessor.common.PostProcessor()
+        ydl_title_hook.run = fix_video_title
+
+        # SpankBang 使用網站首頁作為 Referer
         if isinstance(referer, str) and referer.startswith(("https://", "http://")):
+            if referer.startswith(("https://spankbang.com/", "http://spankbang.com/")):
+                referer = "https://spankbang.com"
+
             options["http_headers"] = {
                 "Referer": referer,
             }
-
         # 避免 yt-dlp 的文字輸出干擾 Native Messaging
         with contextlib.redirect_stdout(sys.stderr):
             with yt_dlp.YoutubeDL(options) as ydl:
-                # 優先解析原始網頁網址，失敗時嘗試 HLS 備援
+                ydl.add_post_processor(ydl_title_hook, when="pre_process")
+
                 try:
-                    info = ydl.extract_info(url, download=False)
+                    info = ydl.extract_info(url, download=True)
 
                     if not info:
                         raise ValueError("無法取得影片資訊")
@@ -118,57 +141,14 @@ def download_video(
                         raise
 
                     print(
-                        "[Video Downloader] 原始網址解析失敗，嘗試 HLS 備援",
+                        "[Video Downloader] 原始網址失敗，嘗試 HLS 備援",
                         file=sys.stderr,
                     )
 
-                    info = ydl.extract_info(fallback_url, download=False)
+                    info = ydl.extract_info(fallback_url, download=True)
 
                     if not info:
                         raise ValueError("HLS 備援無法取得影片資訊")
-
-                # yt-dlp 標題無效時，才使用網頁標題備援
-                video_title = info.get("title", "")
-
-                if (
-                    isinstance(title, str)
-                    and title.strip()
-                    and (
-                        not isinstance(video_title, str)
-                        or not video_title.strip()
-                        or video_title.lower() in ("video", "playlist", "index", "master")
-                    )
-                ):
-                    clean_title = title.strip()
-
-                    # 移除網頁標題最後一段常見的網站後綴
-                    for separator in [" | ", " - ", " — "]:
-                        if separator in clean_title:
-                            clean_title = clean_title.rsplit(separator, 1)[0].strip()
-                            break
-
-                    info["title"] = clean_title
-
-                # 根據影片資訊推算輸出檔名
-                filename = ydl.prepare_filename(info)
-                final_path = Path(filename)
-
-                if info.get("requested_formats"):
-                    final_path = final_path.with_suffix(".mp4")
-
-                # 已有完成檔案就直接跳過
-                if final_path.is_file():
-                    return {
-                        "success": True,
-                        "skipped": True,
-                        "title": info.get("title", "Unknown"),
-                        "filename": final_path.name,
-                        "downloadPath": str(output_dir),
-                    }
-
-                # 使用已修改標題的影片資訊下載，避免重新解析
-                info = ydl.process_ie_result(info, download=True)
-
 
         return {
             "success": True,
