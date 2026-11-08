@@ -151,7 +151,6 @@ function connectDownload(task) {
       return;
     }
 
-
     if (response.event === "skipped") {
       updateTask(task.id, {
         status: "skipped",
@@ -164,7 +163,6 @@ function connectDownload(task) {
       port.disconnect();
       return;
     }
-
 
     if (response.event === "completed") {
       updateTask(task.id, {

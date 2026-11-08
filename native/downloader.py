@@ -1,6 +1,5 @@
 
 import contextlib
-import os
 import sys
 import time
 import traceback
@@ -8,6 +7,7 @@ from pathlib import Path
 
 import yt_dlp
 from yt_dlp.networking.impersonate import ImpersonateTarget
+
 
 def download_video(
     url,
@@ -37,19 +37,17 @@ def download_video(
 
         last_report = now
 
-
         total = data.get("total_bytes") or data.get("total_bytes_estimate")
 
         downloaded = data.get("downloaded_bytes")
 
-        if data.get("status") == "finished":
+        if status == "finished":
             downloaded = total or downloaded or 0
         else:
             downloaded = downloaded or 0
 
         speed = data.get("speed")
         eta = data.get("eta")
-
 
         percent = (
             round(downloaded / total * 100, 1)
