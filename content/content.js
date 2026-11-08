@@ -1,7 +1,6 @@
 
 console.log("[Video Downloader] content.js loaded");
 
-const detectedVideos = new WeakSet();
 const videoButtons = new Map();
 
 let downloadButtonsEnabled = false;
@@ -49,8 +48,7 @@ function updateButtonPosition(video, button) {
 }
 
 function addDownloadButton(video) {
-  if (detectedVideos.has(video)) return;
-  detectedVideos.add(video);
+  if (videoButtons.has(video)) return;
 
   console.log("[Video Downloader] 偵測到影片", video);
 
@@ -59,7 +57,6 @@ function addDownloadButton(video) {
   button.textContent = "⬇ 下載";
   button.type = "button";
   button.hidden = true;
-
 
   button.addEventListener("click", async (event) => {
     event.preventDefault();
@@ -109,7 +106,6 @@ function addDownloadButton(video) {
       }, 3000);
     }
   });
-
 
   document.documentElement.appendChild(button);
   videoButtons.set(video, button);
