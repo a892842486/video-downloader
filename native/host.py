@@ -1,8 +1,13 @@
 
-from downloader import download_video
 import json
 import struct
 import sys
+
+from downloader import download_video
+
+
+# 保留原始 stdout，專門供 Native Messaging 使用
+NATIVE_STDOUT = sys.stdout.buffer
 
 
 def read_message():
@@ -17,21 +22,12 @@ def read_message():
     return json.loads(message.decode("utf-8"))
 
 
-
-# 保留原始 stdout，專門供 Native Messaging 使用
-NATIVE_STDOUT = sys.stdout.buffer
-
-
 def send_message(message):
     encoded = json.dumps(message).encode("utf-8")
 
     NATIVE_STDOUT.write(struct.pack("<I", len(encoded)))
     NATIVE_STDOUT.write(encoded)
     NATIVE_STDOUT.flush()
-
-
-
-
 
 
 def main():
@@ -78,8 +74,8 @@ def main():
             response["event"] = "completed"
         else:
             response["event"] = "error"
-        response["requestId"] = request_id
 
+        response["requestId"] = request_id
         send_message(response)
 
 
