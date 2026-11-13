@@ -14,6 +14,7 @@
 - 支援多任務下載、取消與中斷任務重新下載（部分來源可續傳）
 - 自訂下載位置，保存下載紀錄
 - 可開關網頁下載按鈕
+- 影片下載能力取決於 yt-dlp 對來源網站的支援情況，部分網站可能無法下載
 
 ## Tech Stack
 
@@ -36,7 +37,7 @@
 
 **下載流程：**
 
-`Chrome Extension` → `background.js` → `Native Messaging` → `Python` → `yt-dlp / FFmpeg`
+`content.js` → `background.js` → `Native Messaging` → `host.py` → `downloader.py` → `yt-dlp / FFmpeg`
 
 ## Screenshots
 
@@ -128,6 +129,6 @@ reg query "HKCU\Software\Google\Chrome\NativeMessagingHosts\com.video_downloader
 4. 開啟有影片的網頁，點擊下載按鈕。
 5. 在擴充功能視窗查看下載進度與結果。
 
-> 本專案目前以 Windows 11 開發及測試。Native Host 的批次檔啟動方式仍需在其他 Windows 環境驗證。
+> 本專案於 Windows 10 開發及測試。Native Messaging 安裝方式依目前開發環境整理，尚未完成其他電腦的安裝驗證。
 
 > 請僅下載有權保存的影片，並遵守網站使用條款及相關著作權規範。
