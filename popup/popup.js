@@ -11,6 +11,7 @@ const downloadButtonsToggle = document.getElementById(
 const tasksSection = document.getElementById("download-tasks");
 const tasksList = document.getElementById("tasks-list");
 const tasksCount = document.getElementById("tasks-count");
+const clearHistoryButton = document.getElementById("clear-history-button");
 
 const STATUS_LABELS = {
   downloading: "下載中",
@@ -156,6 +157,37 @@ function renderTask(task) {
     });
 
     header.appendChild(cancelButton);
+  } else {
+    const removeButton = createElement(
+      "button",
+      "task-remove-button",
+      "×"
+    );
+
+    removeButton.type = "button";
+    removeButton.title = "移除這筆下載紀錄";
+
+    removeButton.addEventListener("click", async () => {
+      removeButton.disabled = true;
+
+      try {
+        const response = await chrome.runtime.sendMessage({
+          action: "removeDownloadTask",
+          taskId: task.id,
+        });
+
+        if (!response?.success) {
+          statusElement.textContent =
+            `移除失敗：${response?.error || "未知錯誤"}`;
+          removeButton.disabled = false;
+        }
+      } catch (error) {
+        statusElement.textContent = `移除失敗：${error.message}`;
+        removeButton.disabled = false;
+      }
+    });
+
+    header.appendChild(removeButton);
   }
 
   card.appendChild(header);
@@ -272,9 +304,39 @@ function renderTask(task) {
   return card;
 }
 
+// 清空所有非進行中的下載紀錄
+clearHistoryButton.addEventListener("click", async () => {
+  if (!confirm("確定清空所有下載紀錄？正在下載的任務會保留。")) {
+    return;
+  }
+
+  clearHistoryButton.disabled = true;
+
+  try {
+    const response = await chrome.runtime.sendMessage({
+      action: "clearDownloadHistory",
+    });
+
+    if (!response?.success) {
+      statusElement.textContent =
+        `清空失敗：${response?.error || "未知錯誤"}`;
+    }
+  } catch (error) {
+    statusElement.textContent = `清空失敗：${error.message}`;
+  } finally {
+    clearHistoryButton.disabled = false;
+  }
+});
+
 // 更新整份下載清單
 function renderTasks(tasks) {
   tasksList.replaceChildren();
+
+  clearHistoryButton.disabled =
+    !Array.isArray(tasks) ||
+    !tasks.some((task) =>
+      !["downloading", "processing"].includes(task.status)
+    );
 
   if (!Array.isArray(tasks) || tasks.length === 0) {
     tasksSection.hidden = true;

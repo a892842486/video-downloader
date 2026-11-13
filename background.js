@@ -261,6 +261,44 @@ async function cancelDownload(taskId) {
   return { success: true };
 }
 
+// 移除單筆下載紀錄
+async function removeDownloadTask(taskId) {
+  await initializeTasks();
+
+  const task = tasks.get(taskId);
+
+  if (!task) {
+    return { success: false, error: "找不到下載任務" };
+  }
+
+  if (ACTIVE_STATUSES.includes(task.status)) {
+    return { success: false, error: "無法移除正在下載的任務" };
+  }
+
+  tasks.delete(taskId);
+  await saveTasks();
+
+  return { success: true };
+}
+
+// 清空所有非進行中的下載紀錄
+async function clearDownloadHistory() {
+  await initializeTasks();
+
+  let removedCount = 0;
+
+  for (const [taskId, task] of tasks) {
+    if (ACTIVE_STATUSES.includes(task.status)) continue;
+
+    tasks.delete(taskId);
+    removedCount++;
+  }
+
+  await saveTasks();
+
+  return { success: true, removedCount };
+}
+
 // 新增下載任務
 async function startDownload(message, sender) {
   await initializeTasks();
@@ -375,6 +413,32 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message.action === "cancelDownload") {
     cancelDownload(message.taskId)
+      .then(sendResponse)
+      .catch((error) => {
+        sendResponse({
+          success: false,
+          error: error.message,
+        });
+      });
+
+    return true;
+  }
+
+  if (message.action === "removeDownloadTask") {
+    removeDownloadTask(message.taskId)
+      .then(sendResponse)
+      .catch((error) => {
+        sendResponse({
+          success: false,
+          error: error.message,
+        });
+      });
+
+    return true;
+  }
+
+  if (message.action === "clearDownloadHistory") {
+    clearDownloadHistory()
       .then(sendResponse)
       .catch((error) => {
         sendResponse({
