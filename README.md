@@ -5,6 +5,7 @@
 透過 Chrome Native Messaging 連接 Python，由擴充功能負責操作介面與任務管理，Python 負責實際下載。
 
 <!-- 專案主要截圖 -->
+![Video Downloader Preview](images/video-downloader-preview.jpg)
 
 ## Features
 
